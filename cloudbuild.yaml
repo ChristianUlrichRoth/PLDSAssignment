@@ -1,0 +1,6 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/rassignment/github.com/christianulrichroth/rassignment/docker:docktest1', '-f', 'Dockerfile', '.' ]
+images:
+- 'gcr.io/rassignment/github.com/christianulrichroth/rassignment/docker:docktest1'
+timeout: 10000s

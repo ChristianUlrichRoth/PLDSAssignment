@@ -1,0 +1,261 @@
+---
+title: "Präsentation Major Assignment"
+author: "Christian Roth & Andreas Wassmus"
+institute: "HdM - Programming Languages for Data Science"
+date: "23.10.2019"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+
+class: inverse
+
+background-image:url(images/agenda_flugzeug.png)
+background-position: 50% 50%
+background-size: contain
+
+# Flight Analysis Christmas15
+
+<img src="images/logo.svg" width="200" height="200" />
+
+---
+
+# Übersicht
+
+1. Data Prep der Flugdaten aus den USA aus dem Jahr 2015 
+2. Data Exploration und Analyse der Verspätungen bei Airlines
+3. Visualisierung in einem interaktiven Shiny-Dashboard
+4. Animierten Karte mit Flugbewegungen
+5. Deployment mit  Docker und in der Google-Cloud
+6. Fazit
+
+![](images/Karte_Airports.jpeg)
+
+<font size="1"> Flughäfen USA, Image credit: https://www.kaggle.com/fabiendaniel/predicting-flight-delays-tutorial </font> 
+
+---
+
+# Vorstellung Datensatz und Data Prep 
+
+* Flight Data 2015 von U.S. Department of Transportation's (DOT)
+<font size="1"> Quelle: https://www.kaggle.com/fabiendaniel/predicting-flight-delays-tutorial/data</font> 
+
+* 3 Datensätze: airlines.csv, airports.csv, flights.csv
+
+* 5.819.079 Datensätze (=Flüge in der USA in 2015)
+
+* Flüge an Weihnachten 2016 (23.12.-26.12.): 56.246
+
+* Flüge am Christmas Day (25.12.): 1.299
+
+---
+
+
+# Data Preparation
+
+.center[[![Data Prep](https://media.giphy.com/media/SVgCHJ2n35EA6XFPpO/giphy.gif)](./Data_Prep_15.html)]
+
+---
+
+# Einblick in den Datensatz Flights 2015 
+
+* Nach der Data Preparation sind noch 5.226.569 Obervationen im Datensatz. Das entspricht einer Reduktion von 10,2%.
+* Mit den Daten können somit 90% der Flüge in den USA in 2015 betrachtet werden.
+* Nach der ersten Analyse der Daten haben wir uns überlegt, die Pünktlichkeit im Rahmen der Projektarbeit herauszustellen.
+* Dabei gehen wir davon aus, dass für Passagiere die pünktliche Ankunft am Zielort entscheidenter ist, als die Abflugsverspätung:
+
+<font size="1"> Ankünftsverspätung je Airline, soriteirt nach Anzahl Flüge:</font>
+
+![Ankünftsverspätung je Airline](images/Statistics_complete.jpeg)
+
+---
+
+# Plots zur Ankünftsverspätung
+
+<font size="1"> Ankunftsverspätung und Distanz </font>
+
+.center[<img src="images/plot_versp_dist.png" height="200"/>]
+
+
+<font size="1"> Ankunftsverspätung je Airline (links alle Flüge, rechts Flüge mit größer 10 min. Verspätung </font>
+
+.pull-left[
+
+<img src="images/boxplot_gesamt.png" height="180" />
+]
+
+.pull-right[
+<img src="images/boxplot_gesamt_versp10.png" height="180" />
+]
+
+---
+
+# Chrsitmas Data
+
+Einbindung von Code
+
+```{r include=FALSE}
+```{r}
+library(tidyverse)
+library(readr)
+library(DataExplorer)
+```
+
+```{r include=FALSE}
+christmas15 <- read_csv( file=( "./data/cleandata/christmas15.csv"))
+```
+
+
+---
+## QQ_plots
+
+```{r}
+qq_christmas15 <- christmas15[, c("ARRIVAL_DELAY", "AIR_TIME", "DISTANCE", "ELAPSED_TIME")]
+plot_qq(qq_christmas15, sampled_rows = 1000L)
+```
+---
+
+## Logarithmierte QQ-Plots
+
+```{r}
+log_qq_christmas15 <- update_columns(qq_christmas15, 2:4, function(x) log(x + 1))
+
+plot_qq(log_qq_christmas15[, 2:4], sampled_rows = 1000L)
+```
+
+---
+# Korrelationen
+
+Im Datensatz gibt es einige Korrelationen die in einer tiefergehenden Analyse analysiert werden können.
+
+![](images/correlation_matrix.png)
+
+---
+# Auswertungen bei Christmas Data
+.pull-left[
+Abflugverspätung pro Tag
+
+<img src="images/keyfact1.jpeg" width="350"/>
+
+]
+
+
+.pull-right[
+Abflugverspätungen pro Airline
+
+<img src="images/keyfact2.jpeg" width="400"/>
+]
+
+Mittelwert und Median (and Median (Abflug und Ankunft) für jeden Tag
+
+![](images/keyfacts3.jpeg)
+---
+
+class: inverse
+
+# Visualisierungen in Dashboards
+
+
+
+Manchmal sind einfache Instrumente zeitlos...
+
+.center[<img src="images/dashboard_einleitung.png" height="370" />]
+
+---
+
+
+
+# Visualisierung in Shiny
+
+... doch oft bedarf es auch nach etwas Neuem:
+
+.center[<img src="images/dashboard.png" height="370" />]
+
+[Shiny](https://croth.shinyapps.io/shiny/)
+
+
+
+---
+
+# Animierte Karte mit Flugbewegungen
+
+* Wir hatten die Aufgabe, eine Karte zu bauen, die Flugbewegungen in einer Region abbildet.
+
+* Um eine Darstellung zu ermöglichen, mussten wir den Datensatz weiter reduzieren.
+
+* Dazu wurde der Datensatz Chrsitmas Day gebaut.
+
+* Dieser Datensatz beinhaltet alle Flugbewegungen (Anzahl 1.299) am 25.12. von und nach JFK
+
+* Um die Karte besser zu veranschaulichen, wurde aus diesem Datensatz nochmal ein Stichprobe gezogen.
+
+.center[<img src="images/flugbewegungen.png" height="180" />]
+
+---
+
+background-image:url(images/usa_flights1.gif)
+background-position: 50% 50%
+background-size: contain
+
+# Flüge JFK
+---
+# Flüge JFK
+
+.pull-left[
+Flugbewegungen in einer einfacheren Karte
+<img src="images/pre_usa_flights1.gif" height="400" />
+]
+.pull-right[
+Flugbewegungen ohne Karte
+<img src="images/pre_usa_flights2.gif" height="400" />
+]
+---
+# Deployment mit  Docker und in der Google-Cloud
+
+* In immer mehr Unternehmen werden Dashboards in einer Cloud-Umgebung gehostet
+* Wir haben uns mit Docker beschäftigt und versucht, eine die Shiny-App in der Google-Cloud zu deployen.
+* Ein erster Ansatz ist sehr viel versprechend. Wir konnten den Container aber nicht stabilisieren.
+* Daher mussten wir in diesem Assignment davon Abstand nehmen und können heute keine Live-Demo zeigen.
+
+.pull-left[
+
+<img src="images/docker.png" height="180" />
+]
+
+.pull-right[
+<img src="images/googlecloud.png" height="180" />
+]
+
+
+
+---
+
+background-image:url(images/outlook.png)
+background-position: 50% 50%
+background-size: contain
+
+
+# Fazit
+
+* Sehr forderndes Modul, aber super interessantes Projekt
+
+* Sehr viel Stoff zu verarbeiten, aber viel Neues gelernt
+
+* Arbeien mit Github und iterative Entwicklungsarbeit
+
+* Xaringan würde wahrscheinlich den Arbeitsalltag erleichtern
+
+* Immer nur bis zum POC oder MVP denken
+
+* Gerne wieder, dann aber in der Cloud und mit einem Vorhersage-Algorithmus, um Verspätungen in einem Dashboard zu prognostizieren.
+
+
+---

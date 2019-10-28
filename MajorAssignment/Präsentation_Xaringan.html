@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+  <head>
+    <title>Präsentation Major Assignment</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="Christian Roth &amp; Andreas Wassmus" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Präsentation Major Assignment
+### Christian Roth &amp; Andreas Wassmus
+### HdM - Programming Languages for Data Science
+### 23.10.2019
+
+---
+
+
+
+
+class: inverse
+
+background-image:url(images/agenda_flugzeug.png)
+background-position: 50% 50%
+background-size: contain
+
+# Flight Analysis Christmas15
+
+&lt;img src="images/logo.svg" width="200" height="200" /&gt;
+
+---
+
+# Übersicht
+
+1. Data Prep der Flugdaten aus den USA aus dem Jahr 2015 
+2. Data Exploration und Analyse der Verspätungen bei Airlines
+3. Visualisierung in einem interaktiven Shiny-Dashboard
+4. Animierten Karte mit Flugbewegungen
+5. Deployment mit  Docker und in der Google-Cloud
+6. Fazit
+
+![](images/Karte_Airports.jpeg)
+
+&lt;font size="1"&gt; Flughäfen USA, Image credit: https://www.kaggle.com/fabiendaniel/predicting-flight-delays-tutorial &lt;/font&gt; 
+
+---
+
+# Vorstellung Datensatz und Data Prep 
+
+* Flight Data 2015 von U.S. Department of Transportation's (DOT)
+&lt;font size="1"&gt; Quelle: https://www.kaggle.com/fabiendaniel/predicting-flight-delays-tutorial/data&lt;/font&gt; 
+
+* 3 Datensätze: airlines.csv, airports.csv, flights.csv
+
+* 5.819.079 Datensätze (=Flüge in der USA in 2015)
+
+* Flüge an Weihnachten 2016 (23.12.-26.12.): 56.246
+
+* Flüge am Christmas Day (25.12.): 1.299
+
+---
+
+
+# Data Preparation
+
+.center[[![Data Prep](https://media.giphy.com/media/SVgCHJ2n35EA6XFPpO/giphy.gif)](./Data_Prep_15.html)]
+
+---
+
+# Einblick in den Datensatz Flights 2015 
+
+* Nach der Data Preparation sind noch 5.226.569 Obervationen im Datensatz. Das entspricht einer Reduktion von 10,2%.
+* Mit den Daten können somit 90% der Flüge in den USA in 2015 betrachtet werden.
+* Nach der ersten Analyse der Daten haben wir uns überlegt, die Pünktlichkeit im Rahmen der Projektarbeit herauszustellen.
+* Dabei gehen wir davon aus, dass für Passagiere die pünktliche Ankunft am Zielort entscheidenter ist, als die Abflugsverspätung:
+
+&lt;font size="1"&gt; Ankünftsverspätung je Airline, soriteirt nach Anzahl Flüge:&lt;/font&gt;
+
+![Ankünftsverspätung je Airline](images/Statistics_complete.jpeg)
+
+---
+
+# Plots zur Ankünftsverspätung
+
+&lt;font size="1"&gt; Ankunftsverspätung und Distanz &lt;/font&gt;
+
+.center[&lt;img src="images/plot_versp_dist.png" height="200"/&gt;]
+
+
+&lt;font size="1"&gt; Ankunftsverspätung je Airline (links alle Flüge, rechts Flüge mit größer 10 min. Verspätung &lt;/font&gt;
+
+.pull-left[
+
+&lt;img src="images/boxplot_gesamt.png" height="180" /&gt;
+]
+
+.pull-right[
+&lt;img src="images/boxplot_gesamt_versp10.png" height="180" /&gt;
+]
+
+---
+
+# Chrsitmas Data
+
+Einbindung von Code
+
+
+
+```r
+library(tidyverse)
+```
+
+```
+## ── Attaching packages ───────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──
+```
+
+```
+## ✔ ggplot2 3.2.1     ✔ purrr   0.3.2
+## ✔ tibble  2.1.3     ✔ dplyr   0.8.3
+## ✔ tidyr   0.8.3     ✔ stringr 1.4.0
+## ✔ readr   1.3.1     ✔ forcats 0.4.0
+```
+
+```
+## ── Conflicts ──────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+```
+
+```r
+library(readr)
+library(DataExplorer)
+```
+
+
+
+
+---
+## QQ_plots
+
+
+```r
+qq_christmas15 &lt;- christmas15[, c("ARRIVAL_DELAY", "AIR_TIME", "DISTANCE", "ELAPSED_TIME")]
+plot_qq(qq_christmas15, sampled_rows = 1000L)
+```
+
+![](Präsentation_Xaringan_files/figure-html/unnamed-chunk-4-1.png)&lt;!-- --&gt;
+---
+
+## Logarithmierte QQ-Plots
+
+
+```r
+log_qq_christmas15 &lt;- update_columns(qq_christmas15, 2:4, function(x) log(x + 1))
+
+plot_qq(log_qq_christmas15[, 2:4], sampled_rows = 1000L)
+```
+
+![](Präsentation_Xaringan_files/figure-html/unnamed-chunk-5-1.png)&lt;!-- --&gt;
+
+---
+# Korrelationen
+
+Im Datensatz gibt es einige Korrelationen die in einer tiefergehenden Analyse analysiert werden können.
+
+![](images/correlation_matrix.png)
+
+---
+# Auswertungen bei Christmas Data
+.pull-left[
+Abflugverspätung pro Tag
+
+&lt;img src="images/keyfact1.jpeg" width="350"/&gt;
+
+]
+
+
+.pull-right[
+Abflugverspätungen pro Airline
+
+&lt;img src="images/keyfact2.jpeg" width="400"/&gt;
+]
+
+Mittelwert und Median (and Median (Abflug und Ankunft) für jeden Tag
+
+![](images/keyfacts3.jpeg)
+---
+
+class: inverse
+
+# Visualisierungen in Dashboards
+
+
+
+Manchmal sind einfache Instrumente zeitlos...
+
+.center[&lt;img src="images/dashboard_einleitung.png" height="370" /&gt;]
+
+---
+
+
+
+# Visualisierung in Shiny
+
+... doch oft bedarf es auch nach etwas Neuem:
+
+.center[&lt;img src="images/dashboard.png" height="370" /&gt;]
+
+[Shiny](https://croth.shinyapps.io/shiny/)
+
+
+
+---
+
+# Animierte Karte mit Flugbewegungen
+
+* Wir hatten die Aufgabe, eine Karte zu bauen, die Flugbewegungen in einer Region abbildet.
+
+* Um eine Darstellung zu ermöglichen, mussten wir den Datensatz weiter reduzieren.
+
+* Dazu wurde der Datensatz Chrsitmas Day gebaut.
+
+* Dieser Datensatz beinhaltet alle Flugbewegungen (Anzahl 1.299) am 25.12. von und nach JFK
+
+* Um die Karte besser zu veranschaulichen, wurde aus diesem Datensatz nochmal ein Stichprobe gezogen.
+
+.center[&lt;img src="images/flugbewegungen.png" height="180" /&gt;]
+
+---
+
+background-image:url(images/usa_flights1.gif)
+background-position: 50% 50%
+background-size: contain
+
+# Flüge JFK
+---
+# Flüge JFK
+
+.pull-left[
+Flugbewegungen in einer einfacheren Karte
+&lt;img src="images/pre_usa_flights1.gif" height="400" /&gt;
+]
+.pull-right[
+Flugbewegungen ohne Karte
+&lt;img src="images/pre_usa_flights2.gif" height="400" /&gt;
+]
+---
+# Deployment mit  Docker und in der Google-Cloud
+
+* In immer mehr Unternehmen werden Dashboards in einer Cloud-Umgebung gehostet
+* Wir haben uns mit Docker beschäftigt und versucht, eine die Shiny-App in der Google-Cloud zu deployen.
+* Ein erster Ansatz ist sehr viel versprechend. Wir konnten den Container aber nicht stabilisieren.
+* Daher mussten wir in diesem Assignment davon Abstand nehmen und können heute keine Live-Demo zeigen.
+
+.pull-left[
+
+&lt;img src="images/docker.png" height="180" /&gt;
+]
+
+.pull-right[
+&lt;img src="images/googlecloud.png" height="180" /&gt;
+]
+
+
+
+---
+
+background-image:url(images/outlook.png)
+background-position: 50% 50%
+background-size: contain
+
+
+# Fazit
+
+* Sehr forderndes Modul, aber super interessantes Projekt
+
+* Sehr viel Stoff zu verarbeiten, aber viel Neues gelernt
+
+* Arbeien mit Github und iterative Entwicklungsarbeit
+
+* Xaringan würde wahrscheinlich den Arbeitsalltag erleichtern
+
+* Immer nur bis zum POC oder MVP denken
+
+* Gerne wieder, dann aber in der Cloud und mit einem Vorhersage-Algorithmus, um Verspätungen in einem Dashboard zu prognostizieren.
+
+
+---
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

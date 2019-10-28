@@ -1,0 +1,21 @@
+FROM gcr.io/gcer-public/shiny-googleauthrdemo
+MAINTAINER Mark Edmondson (r@sunholo.com)
+
+# install R package dependencies
+RUN apt-get update && apt-get install -y \
+    ##### ADD YOUR DEPENDENCIES
+    ## clean up
+    && apt-get clean \ 
+    && rm -rf /var/lib/apt/lists/ \ 
+    && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+    
+## Install packages from CRAN
+RUN install2.r --error \ 
+    -r 'http://cran.rstudio.com' \
+    ##### ADD YOUR CRAN PACKAGES
+    ##### && Rscript -e "devtools::install_github( ## ADD YOUR GITHUB PACKAGES )" \
+    ## clean up
+    && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
+
+## copy your shiny app folder below
+COPY ./shiny/ /srv/shiny-server/myapp/

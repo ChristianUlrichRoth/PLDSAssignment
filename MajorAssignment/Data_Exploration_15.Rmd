@@ -1,0 +1,507 @@
+---
+title: "Programming Languages für Data Science"
+subtitle: "Major Assignment: Flight Analysis - Data Exploration"
+author: "Christian Roth & Andreas Waßmus"
+date: "22.10.2019"
+output:
+    html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1 Problem Statement
+
+Flight Analysis with the Flight Data from the USA in 2015. Conduct a descriptive Analysis. Doing some kind of inductive Statistics.
+
+
+# 1.1 Libraries and Data
+
+```{r}
+library(tidyverse)
+library(readr)
+library(DataExplorer)
+```
+
+
+
+Loading the data:
+
+```{r}
+usflights <- read_csv("./data/flight-delays/usflights15.csv")
+```
+
+
+```{r}
+nrow(usflights)
+```
+
+The data contains 5.819.079 datasets (=count of flights in the US in 2015)
+
+
+```{r}
+head(usflights)
+```
+
+Important features for analysis:
+Date
+Airline
+Flight_Number
+Origin_Airport
+Destination_Arport
+Scheduled_Departure
+Departure Time
+Departure Delay
+
+
+# 1.2 Check of missing values
+
+```{r}
+plot_missing(usflights)
+```
+
+You can also count the missing value per column with this function:
+
+```{r}
+#is.na(usflights)
+colSums(is.na(usflights))
+```
+
+
+In the dataset there is a high amount of missing values in the features: cancellation_reason, air_system_delay, security_delay, airline_delay, late aircraft_delay, weather_delay. Since these colums are only explanations of the features cancellation and delay we can remove them from the dataset.
+
+
+```{r}
+usflights$CANCELLATION_REASON <- NULL
+usflights$AIR_SYSTEM_DELAY <- NULL
+usflights$SECURITY_DELAY <- NULL
+usflights$AIRLINE_DELAY <- NULL
+usflights$LATE_AIRCRAFT_DELAY <- NULL
+usflights$WEATHER_DELAY <- NULL
+head(usflights, 3)
+```
+
+
+```{r}
+colSums(is.na(usflights))
+```
+
+For the analysis it is important to have complete datasets. Therefore, rows with missing values will be deleted to have only complete observations. (airtime_delay could be also calculated by "mutate". For simplification it is waived due to the large number of records.)
+
+```{r}
+usflights_complete <- usflights[!is.na(usflights$DEPARTURE_TIME),]
+usflights_complete <- usflights[!is.na(usflights$ARRIVAL_TIME),]
+usflights_complete <- usflights[!is.na(usflights$ARRIVAL_DELAY),]
+```
+
+Check if data is complete and without missing values:
+
+```{r}
+colSums(is.na(usflights_complete))
+```
+
+```{r}
+nrow(usflights_complete)
+```
+
+105.071 data sets were reomved from the analyse. The data has now 5.714.008 oberservations.
+
+
+# Merge with Arilines und Airports
+
+```{r}
+airlines2015 <- read_csv("./data/flight-delays/airlines15.csv")
+airports2015 <- read_csv("./data/flight-delays/airports15.csv")
+```
+
+Overview of the data:
+
+```{r}
+data_list_2015 <- list(airlines2015, airports2015, usflights)
+plot_str(data_list_2015)
+```
+
+
+
+Merge Airlines to flight dataset:
+
+```{r}
+flights2015 <- merge(usflights_complete, airlines2015, by.x= "AIRLINE", by.y="IATA_CODE", all.x = TRUE)
+
+```
+
+Merge Airports to flight dataset:
+
+```{r}
+flights2015_merged <- merge(flights2015, airports2015, by.x = "ORIGIN_AIRPORT", by.y = "IATA_CODE", all.x = TRUE)
+```
+
+Check if merge has worked successfully:
+
+```{r}
+head(flights2015_merged)
+```
+
+
+Check regarding missing values in the merged data:
+
+```{r}
+colSums(is.na(flights2015_merged))
+```
+
+```{r}
+plot_missing(flights2015_merged)
+```
+
+As bevor mentioned, it is important for the analysis to have complete datasets. Therefore, the above shown features with missing values will be deleted.
+
+```{r}
+flights2015_merged_complete <- flights2015_merged[!is.na(flights2015_merged$COUNTRY),]
+flights2015_merged_complete <- flights2015_merged[!is.na(flights2015_merged$STATE),]
+flights2015_merged_complete <- flights2015_merged[!is.na(flights2015_merged$CITY),]
+flights2015_merged_complete <- flights2015_merged[!is.na(flights2015_merged$AIRPORT),]
+flights2015_merged_complete <- flights2015_merged[!is.na(flights2015_merged$LONGITUDE),]
+flights2015_merged_complete <- flights2015_merged[!is.na(flights2015_merged$LATITUDE),]
+```
+
+
+Check if all rows with missing value are excluded from the analysis.
+
+```{r}
+colSums(is.na(flights2015_merged_complete))
+```
+
+```{r}
+nrow(flights2015_merged_complete)
+```
+
+The data has 5.226.569 complete oberservations. Starting from 5.819.079 rows, this represants a reduction of 592.510 or 10,2%. 
+
+```{r}
+nrow(flights2015_merged)
+```
+
+
+# Building DEPARTURE_DATE From the columns YEAR, MONTH and DAY.
+
+This step makes our analysis easier and is important for showing flight movements in a map for each day.
+
+```{r}
+flights2015_merged_complete$DEPARTURE_DATE <- as.Date(with(flights2015_merged_complete, paste(YEAR, MONTH, DAY, sep = "-")),"%Y-%m-%d")
+head(flights2015_merged_complete$DEPARTURE_DATE)
+```
+
+For further processing we save a csv from this dataframe:
+
+```{r eval=FALSE, include=FALSE}
+write.csv(flights2015_merged_complete,("./data/cleandata/flights15_complete.csv"))
+```
+
+In fact it is very hard to work with such a big dataframe and every analysis will take a lot of time. Therefore, we decided to conduct a Christmas Flight Study in 2015 and we will work with a smaler data frame:
+
+
+```{r}
+christmas15 <- filter(flights2015_merged_complete, DEPARTURE_DATE >="2015-12-23" & DEPARTURE_DATE <= "2015-12-26")
+```
+
+56.246 oberservations were selected for the further analysis:
+
+```{r}
+nrow(christmas15)
+```
+
+```{r eval=FALSE, include=FALSE}
+write.csv(christmas15,("./data/cleandata/christmas15.csv"))
+```
+
+
+Dataset for animated flight map:
+
+```{r}
+christmasDay15 <- filter(christmas15, DEPARTURE_DATE == "2015-12-25" & ORIGIN_AIRPORT == "JFK" | DESTINATION_AIRPORT == "JFK")
+christmasDay15
+```
+
+```{r}
+nrow(christmasDay15)
+```
+
+Random sample fo December, 25th:
+
+```{r eval=FALSE, include=FALSE}
+christmasDay15_sample <- sample_n(christmasDay15, 50)
+christmasDay15_sample
+```
+
+```{r eval=FALSE, include=FALSE}
+write.csv(christmasDay15,("./data/cleandata/christmasDay15.csv"))
+```
+
+```{r eval=FALSE, include=FALSE}
+write.csv(christmasDay15_sample,("./data/cleandata/christmasDay15_sample.csv"))
+```
+
+
+# 2. Data Exploration Flights 2015
+
+Introduction complete dataset:
+
+Plotting the whole data takes a while... As an example we show to plots of the total data we have in 2015. In the first plott, distance of a flight is shown on the x-axis and the ARRIVAL_DELAY on y. You can see that the majority of the flights (doesn´t matter which distance) has only a little delay, close to 0. Many flights also arrive before their sceduled ARRIVAL_TIME at the DESTINATION_AIRPORT. But we also have a lot of observations where we see extreme delays up to 2000 minutes in every distance in the US.
+
+```{r}
+p1 <- ggplot(flights2015_merged_complete, aes(DISTANCE, ARRIVAL_DELAY)) +
+   geom_point() 
+p1
+```
+
+
+The following plot is supporting this impression by visualizing that all boxplots are very close to no delay (some are even earlier than the scheduled arrival). At the same time it shows the spread of delays for each airline. And these delays cause customers to get a bad impressionfrom an airline.
+
+```{r}
+p2<- ggplot(flights2015_merged_complete, aes(AIRLINE , ARRIVAL_DELAY)) +
+   geom_boxplot() 
+p2
+```
+
+Let´s have a closer look to some statistics:
+
+```{r}
+flights2015_merged_complete %>%
+  group_by(AIRLINE.y) %>%
+  summarise (count = n(),
+            mean_arrival_delay = mean(ARRIVAL_DELAY),
+            median_arrival_delay = median(ARRIVAL_DELAY),
+            max_arrival_delay = max(ARRIVAL_DELAY),
+            min_arrival_delay = min(ARRIVAL_DELAY)) %>%
+  arrange(desc(count))
+```
+
+
+```{r}
+flights2015_merged_complete %>%
+  group_by(AIRLINE) %>%
+  summarise (mean_departure_delay = mean(DEPARTURE_DELAY),
+            median_departure_delay = median(DEPARTURE_DELAY),
+            max_departure_delay = max(DEPARTURE_DELAY),
+            min_departure_delay = min(DEPARTURE_DELAY))
+```
+
+Assuming that 10 minutes delay is acceptable, we will build a data frame with ARRIVAL_DELAYs < 10 minutes. What will the distribution look alike in this case?
+
+First, we have to build a new data frame:
+
+```{r}
+flights2015_delay10 <- flights2015_merged_complete %>%
+  group_by(AIRLINE) %>%
+  filter(ARRIVAL_DELAY > 10)
+```
+
+1.182.848 flights are delayed more than 10 minutes. That is a percentage of 22,6% - almost a quarter of the flights:
+
+```{r}
+nrow(flights2015_delay10)
+percentage <- nrow(flights2015_delay10) / nrow(flights2015_merged_complete)
+percentage
+```
+
+Statistics for flights with a arrival delay > 10 minutes:
+
+```{r}
+flights2015_delay10 %>%
+  group_by(AIRLINE.y) %>%
+  summarise (count = n(),
+            mean_arrival_delay = mean(ARRIVAL_DELAY),
+            median_arrival_delay = median(ARRIVAL_DELAY),
+            max_arrival_delay = max(ARRIVAL_DELAY),
+            min_arrival_delay = min(ARRIVAL_DELAY)) %>%
+  arrange(desc(count))
+```
+
+We can see, that the mean delay and median is higher than in the complete data. For almost a quarter of al flights passenger have to deal with a significant delay.
+
+
+```{r}
+p3<- ggplot(flights2015_delay10, aes(AIRLINE , ARRIVAL_DELAY)) +
+   geom_boxplot() 
+p3
+```
+
+
+
+# 3. Data Exploration Flights 2015
+
+Introduction christmas15 dataset:
+(with DataExplorer, source: https://cran.r-project.org/web/packages/DataExplorer/vignettes/dataexplorer-intro.html)
+
+We have 16 discrete and 17 continuous features.
+
+
+```{r}
+introduce(christmas15)
+```
+
+
+```{r}
+plot_intro(christmas15)
+```
+
+
+
+```{r}
+plot_bar(christmas15, with = "ARRIVAL_DELAY")
+```
+
+
+```{r}
+plot_histogram(christmas15)
+```
+
+
+```{r}
+head(christmas15)
+```
+
+
+
+```{r}
+qq_christmas15 <- christmas15[, c("ARRIVAL_DELAY", "AIR_TIME", "DISTANCE", "ELAPSED_TIME")]
+plot_qq(qq_christmas15, sampled_rows = 1000L)
+```
+
+```{r}
+log_qq_christmas15 <- update_columns(qq_christmas15, 2:4, function(x) log(x + 1))
+
+plot_qq(log_qq_christmas15[, 2:4], sampled_rows = 1000L)
+```
+
+
+
+
+```{r}
+plot_correlation(na.omit(christmas15), maxcat = 5L)
+```
+
+
+
+
+```{r}
+summary(christmas15$ARRIVAL_DELAY, na.rm = TRUE)
+```
+
+
+
+```{r}
+christmas15 %>%
+  group_by(AIRLINE) %>%
+  summarise (mean_departure_delay = mean(DEPARTURE_DELAY),
+            median_departure_delay = median(DEPARTURE_DELAY),
+            max_departure_delay = max(DEPARTURE_DELAY),
+            min_departure_delay = min(DEPARTURE_DELAY))
+```
+
+
+
+
+```{r}
+christmas15 %>%
+  group_by(AIRLINE) %>%
+  summarise (mean_arrival_delay = mean(ARRIVAL_DELAY),
+            median_arrival_delay = median(ARRIVAL_DELAY),
+            max_arrival_delay = max(ARRIVAL_DELAY),
+            min_arrival_delay = min(ARRIVAL_DELAY))
+```
+
+
+BIVARIATE STATISTIK
+
+```{r}
+
+
+cor(christmas15$DEPARTURE_DELAY, christmas15$ARRIVAL_DELAY, use = "pairwise.complete.obs", method = "pearson")
+
+
+```
+
+```{r}
+
+cor(christmas15$DISTANCE, christmas15$AIR_TIME, use = "pairwise.complete.obs", method = "spearman")
+
+
+```
+
+Wo fliegen die meisten Flugzeuge ab?
+`
+
+```{r}
+
+```
+
+Wie viel sind die Flüge bei Abflug verspätet?
+
+
+
+
+```{r}
+usflights_complete %>% 
+  group_by(DAY, MONTH) %>% 
+  summarise(ARRIVAL_DELAY = mean(ARRIVAL_DELAY)) %>% 
+  ungroup() %>%
+  arrange(desc(ARRIVAL_DELAY))
+
+
+```
+
+
+
+BIVARIATE STATISTIK
+
+```{r}
+
+
+cor(christmas15$DISTANCE, christmas15$AIR_TIME, use = "pairwise.complete.obs", method = "pearson")
+
+
+```
+
+```{r}
+
+cor(christmas15$DISTANCE, christmas15$AIR_TIME, use = "pairwise.complete.obs", method = "spearman")
+
+
+```
+Rechenintensiver, aber gleiches Ergebnis
+
+ENcoding UTF-8
+
+
+Lineare Regression
+
+```{r}
+
+lm1 <- christmas15 %>%
+         filter(ORIGIN_AIRPORT == "JFK") %>%
+         slice(1:50000)
+
+lm(AIR_TIME ~ DISTANCE + TAXI_IN + TAXI_OUT, data = christmas15)
+
+
+```
+
+
+```{r}
+plot_bar(christmasDay15, with = "ARRIVAL_DELAY")
+```
+
+
+```{r}
+plot_histogram(christmasDay15, binary_as_factor = TRUE,
+  geom_histogram_args = list(bins = 30L), title = NULL,
+  theme_config = list(), nrow = 4L,
+  ncol = 4L, parallel = FALSE)
+```
+
+

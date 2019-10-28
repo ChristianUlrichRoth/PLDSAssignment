@@ -1,0 +1,14 @@
+.DS_Store
+.Rproj.user
+.Rhistory
+.Renviron
+.RData
+
+
+*.Rproj
+
+gcsAuth.json
+
+libs
+
+.Rapp.history

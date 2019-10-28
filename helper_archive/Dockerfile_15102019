@@ -1,0 +1,29 @@
+FROM rocker/rstudio:3.6.1
+
+# install R package dependencies
+RUN apt-get update -qq && apt-get -y --no-install-recommends install \
+    ##### ADD YOUR DEPENDENCIES
+    #libxml2-dev \
+    #libcairo2-dev \
+    #libsqlite3-dev \
+    #libmariadbd-dev \
+    #libmariadb-client-lgpl-dev \
+    #libpq-dev \
+    libssh2-1-dev \
+    unixodbc-dev \
+    libsasl2-dev 
+    
+## Install packages from CRAN
+RUN install2.r --error\ 
+    --deps TRUE \
+    tidyverse \
+    dplyr #\
+    #devtools \
+    #formatR \
+    #remotes \
+    #selectr \
+    #caTools \
+    #BiocManager
+
+## copy your shiny app folder below
+COPY ./shiny/ /srv/shiny-server/myapp/

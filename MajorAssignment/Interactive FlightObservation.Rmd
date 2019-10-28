@@ -1,0 +1,249 @@
+---
+title: "Programming Languages für Data Science"
+subtitle: "Major Assignment: Flight Analysis - Interactive FlightObservation"
+author: "Christian Roth & Andreas Waßmus"
+date: "22.10.2019"
+output:
+    html_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(tidyverse)
+library(maps)
+library(mapdata)
+library(ggplot2)    
+library(ggmap)
+library(gganimate)
+library(ggrepel) # will be useful for data exploration in step 1
+```
+
+
+
+```{r}
+christmasDay15_sample <- read.csv("./data/cleandata/christmasDay15_sample.csv")
+christmasDay15_sample
+
+christmasDay15<- read.csv("./data/cleandata/christmasDay15.csv")
+christmasDay15
+
+airports15<- read.csv("./data/flight-delays/airports15.csv")
+airports15
+
+```
+
+Lat und Long beziehen sich auf den Abflugsflughafen. Somit fehlend noch Lat und Long für den Zielflughafen. 
+```{r}
+christmasDay15 <- merge(christmasDay15, airports15, by.x= "DESTINATION_AIRPORT", by.y="IATA_CODE", all.x = TRUE)
+christmasDay15
+```
+Bevor lediglich die Spalten selektiert werden, welche benötigt werden, muss nach dem Merge die Spalten entsprechend umbennant werden. 
+```{r}
+christmasDay15 <- christmasDay15 %>% 
+  rename(
+    ORG_AIRPORT = ORIGIN_AIRPORT,
+    ORG_LAT = LATITUDE.x,
+    ORG_LON =  LONGITUDE.x,
+    DEST_AIRPORT = DESTINATION_AIRPORT,
+    DEST_LAT = LATITUDE.y,
+    DEST_LON = LONGITUDE.y
+    )
+```
+
+
+```{r}
+christmasDay15 <-   mutate(christmasDay15, ELAPSED_TIME_IN_H = ELAPSED_TIME / 60)
+christmasDay15$ELAPSED_TIME_IN_H <- as.integer(christmasDay15$ELAPSED_TIME_IN_H)
+#christmasDay15$ELAPSED_TIME_IN_H
+```
+
+```{r}
+#christmasDay15$SCHEDULED_DEPARTURE
+```
+
+
+
+```{r}
+christmasDay15$SCHEDULED_DEPARTURE = substr(christmasDay15$SCHEDULED_DEPARTURE,1,nchar(christmasDay15$SCHEDULED_DEPARTURE)-2)
+christmasDay15 <- transform(christmasDay15, SCHEDULED_DEPARTURE = as.numeric(SCHEDULED_DEPARTURE))
+#christmasDay15$SCHEDULED_DEPARTURE
+```
+
+
+```{r}
+christmasDay15 <-   mutate(christmasDay15, ARRIVAL_CALC = SCHEDULED_DEPARTURE + ELAPSED_TIME_IN_H)
+#christmasDay15$ARRIVAL_CALC
+```
+
+
+```{r}
+max(christmasDay15$ARRIVAL_CALC, na.rm=T)
+min(christmasDay15$ARRIVAL_CALC, na.rm=T)
+
+```
+
+
+##Dataset creation
+
+Animiert werden sollen alle Flüge vom JFK Airport in New York am Christmas Day (25.12.).
+Hierzu werden zunächst lediglich die Datensätze aus dem Datensatz exportiert, welche den Abflugsort JFK betreffen.
+```{r}
+christmasDayJFK15 <- christmasDay15 %>% 
+    #filter(ORG_AIRPORT == "JFK") %>% 
+    select(ORG_AIRPORT, ORG_LAT, ORG_LON, SCHEDULED_DEPARTURE, DEST_AIRPORT, DEST_LAT, DEST_LON,  ARRIVAL_CALC) 
+christmasDayJFK15
+```
+
+Im nächsten Schritt muss dem Dataframe eine Index-Column zugewiesen werden.
+
+```{r}
+christmasDayJFK15 <- tibble::rowid_to_column(christmasDayJFK15, "ID")
+christmasDayJFK15
+```
+
+```{r}
+jfk_sample <- sample_n(christmasDayJFK15, 25)
+```
+
+```{r}
+jfk_sample$SCHEDULED_DEPARTURE
+```
+
+
+Nun müssen die ORG-Parameter von den DEST-Parametern getrennt werden, weshalb das Dataset gespalten wird. 
+
+
+```{r}
+christmasDayJFK15_ORG <- jfk_sample %>% 
+    mutate(Event = "Departure Details") %>%
+    rename(
+        AIRPORT = ORG_AIRPORT,
+        LAT = ORG_LAT,
+        LON = ORG_LON,
+        TIME = SCHEDULED_DEPARTURE,
+    ) %>%
+    select(ID, Event, AIRPORT, TIME,  LAT, LON) 
+christmasDayJFK15_ORG
+
+
+christmasDayJFK15_DEST <- jfk_sample %>% 
+    mutate(Event = "Arrival Details") %>%
+    rename(
+        AIRPORT = DEST_AIRPORT,
+        LAT = DEST_LAT,
+        LON = DEST_LON,
+        TIME = ARRIVAL_CALC,
+    ) %>%
+    select(ID, Event, AIRPORT, TIME, LAT, LON) 
+christmasDayJFK15_DEST
+```
+
+Im nächsten Schritt werden die Dataframes wieder in anderer Form zusammengefügt. 
+```{r}
+christmasDayJFK15_events <- rbind(christmasDayJFK15_ORG, christmasDayJFK15_DEST) %>%
+  mutate(Event = factor(Event, ordered = TRUE, levels = c("Departure Details", "Arrival Details"))) %>%
+  mutate(ID = factor(ID))
+christmasDayJFK15_events
+```
+
+Zum Aschluss der DataPrep muss die Spalte Time bearbeitet werden. So wird für die Zeit lediglich die volle Stunde verwendet und die Minutenangaben fallen weg. Es werden jeweils die letzten 2 Character in der Spalte Time je String entfernt. Das kann dazu führen, dass wir unter anderem NA-Values produzieren, wenn beispielsweise die Zeitangabe anfangs bereits zweistellig war. In diesen Fällen werden die daraus enstandenen NA Values mit der Zahl O ersetzt. 
+```{r}
+#christmasDayJFK15_events$TIME = substr(christmasDayJFK15_events$TIME,1,nchar(christmasDayJFK15_events$TIME)-2)
+
+christmasDayJFK15_events <- transform(christmasDayJFK15_events, TIME = as.numeric(TIME))
+
+christmasDayJFK15_events
+```
+
+```{r}
+colSums(is.na(christmasDayJFK15_events))
+```
+
+```{r}
+christmasDayJFK15_events[is.na(christmasDayJFK15_events)] <- 0
+```
+
+```{r}
+usa2 <- map_data("usa") # we already did this, but we can do it again
+usablack <- ggplot() + geom_polygon(data = usa, aes(x=long, y = lat, group = group)) + 
+  coord_fixed(1.3)
+```
+
+
+
+```{r}
+usa <- map_data("usa") # we already did this, but we can do it again
+states <- map_data("state")
+
+#Get the map we'll use as the background
+bbox <- c(left = -125, bottom = 25, right = -65, top = 50)
+us <- get_stamenmap(bbox = bbox, zoom = 5, maptype = "toner-lite")
+ggmap(us)
+
+```
+
+# ```{r}
+# #add delay for all flights
+# add_delay <- 0
+# for(i in flights_to_plot){
+#   christmasDayJFK15_events$order[christmasDayJFK15_events$Countries==i] <-
+#           christmasDayJFK15_events$order[christmasDayJFK15_events$Countries==i]+add_delay
+#   add_delay = add_delay+10
+# }
+# ```
+
+
+
+
+
+```{r}
+ggplot(data = unique(christmasDayJFK15_events), aes(x = LON, y = LAT, label = TIME)) +
+    geom_point() + 
+    geom_text_repel()
+anim_save("./images/pre_usa_flights1.gif")
+```
+
+```{r}
+gga <- ggplot(data = christmasDayJFK15_events, aes(x = LON, y = LAT)) +
+     geom_point() +
+     transition_reveal(TIME)
+animate(gga)
+anim_save("./images/pre_usa_flights2.gif")
+```
+
+```{r }
+ggm <- ggplot(us) +
+  geom_point(data = christmasDayJFK15_events, 
+             aes(x = LON, 
+                 y = LAT, 
+                 col = ID, #zu zeitaufwendig
+                 group = ID,
+                 shape = Event),
+             size = 3, alpha = 0.8) +
+  transition_time(TIME) + 
+  labs(title = paste("Hour", "{round(frame_time, 0)}")) +
+  shadow_wake(wake_length = 0.1) +
+  scale_size(range=c(3,20))
+animate(ggm, fps = 20, duration = 16, width = 1024, height = 951) 
+anim_save("./images/usa_flights3.gif")
+
+```
+
+
+```{r}
+#animate(ggm, fps = 20, width = 1024, height = 951, nframes = 640, end_pause = 40)
+anim_save("./images/usa_flights.gif")
+```
+

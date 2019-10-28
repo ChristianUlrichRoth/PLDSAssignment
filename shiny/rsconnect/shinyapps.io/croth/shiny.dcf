@@ -1,0 +1,13 @@
+name: shiny
+title: shiny
+username:
+account: croth
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 1367730
+bundleId: 2528179
+url: https://croth.shinyapps.io/shiny/
+when: 1571814907.33316
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: flights15_complete.csv|data/flights15_complete_sample.csv
