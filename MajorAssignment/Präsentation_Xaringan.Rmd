@@ -211,14 +211,14 @@ background-size: contain
 
 .pull-left[
 Flugbewegungen in einer einfacheren Karte
-<img src="images/pre_usa_flights1.gif" height="400" />
+<img src="images/pre_usa_flights1.png" height="400" />
 ]
 .pull-right[
 Flugbewegungen ohne Karte
 <img src="images/pre_usa_flights2.gif" height="400" />
 ]
 ---
-# Deployment mit  Docker und in der Google-Cloud
+# Deployment mit Docker und in der Google-Cloud
 
 * In immer mehr Unternehmen werden Dashboards in einer Cloud-Umgebung gehostet
 * Wir haben uns mit Docker beschäftigt und versucht, eine die Shiny-App in der Google-Cloud zu deployen.
@@ -259,3 +259,34 @@ background-size: contain
 
 
 ---
+
+# Nachtrag Deployment mit Docker und in der Google-Cloud
+
+<img src="images/shiny-server-with-gcloud-using-dockerbuild/1_gcloud_dashboard.png" height="400" />
+
+
+
+---
+# Build Trigger
+
+<img src="images/shiny-server-with-gcloud-using-dockerbuild/2_gcloud_build_trigger.png" height="400" />
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
