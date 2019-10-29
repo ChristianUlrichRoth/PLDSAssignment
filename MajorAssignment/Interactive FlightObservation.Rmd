@@ -14,11 +14,9 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+# Libraries and Data load
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+First we load the necessary libraries
 
 ```{r}
 library(tidyverse)
@@ -30,7 +28,7 @@ library(gganimate)
 library(ggrepel) # will be useful for data exploration in step 1
 ```
 
-
+After that we load the data which we want to animate in the map...
 
 ```{r}
 christmasDay15_sample <- read.csv("./data/cleandata/christmasDay15_sample.csv")
@@ -44,12 +42,15 @@ airports15
 
 ```
 
-Lat und Long beziehen sich auf den Abflugsflughafen. Somit fehlend noch Lat und Long für den Zielflughafen. 
+... and merge the airport data for the DESTINATION_AIRPORT to the flights. This information was missing. In the data set we had only LON, LAT for the ORIGIN_AIRPORT.
+
 ```{r}
 christmasDay15 <- merge(christmasDay15, airports15, by.x= "DESTINATION_AIRPORT", by.y="IATA_CODE", all.x = TRUE)
-christmasDay15
+head(christmasDay15)
 ```
-Bevor lediglich die Spalten selektiert werden, welche benötigt werden, muss nach dem Merge die Spalten entsprechend umbennant werden. 
+
+Rename of the columns after merge od data, to select only the colums we need for the map.
+
 ```{r}
 christmasDay15 <- christmasDay15 %>% 
   rename(
@@ -62,56 +63,61 @@ christmasDay15 <- christmasDay15 %>%
     )
 ```
 
+To show the flights in the map, we need the ELAPSED_TIME. This obervation has to be transformed in hours in the format integer.
 
 ```{r}
 christmasDay15 <-   mutate(christmasDay15, ELAPSED_TIME_IN_H = ELAPSED_TIME / 60)
 christmasDay15$ELAPSED_TIME_IN_H <- as.integer(christmasDay15$ELAPSED_TIME_IN_H)
-#christmasDay15$ELAPSED_TIME_IN_H
+head(christmasDay15$ELAPSED_TIME_IN_H)
 ```
 
+In the next two code chunks, SCHEDULED_DEPARTURE has to be transformed (cut of the last two digits in order to get only full hours).
 ```{r}
-#christmasDay15$SCHEDULED_DEPARTURE
+head(christmasDay15$SCHEDULED_DEPARTURE)
 ```
-
-
 
 ```{r}
 christmasDay15$SCHEDULED_DEPARTURE = substr(christmasDay15$SCHEDULED_DEPARTURE,1,nchar(christmasDay15$SCHEDULED_DEPARTURE)-2)
 christmasDay15 <- transform(christmasDay15, SCHEDULED_DEPARTURE = as.numeric(SCHEDULED_DEPARTURE))
-#christmasDay15$SCHEDULED_DEPARTURE
+head(christmasDay15$SCHEDULED_DEPARTURE)
 ```
 
-
+Calculation of the arrival time (ARRIVAL_CALC) with the features SCHEDULED_DEPARTURE and ELAPSED_TIME_IN_H
 ```{r}
 christmasDay15 <-   mutate(christmasDay15, ARRIVAL_CALC = SCHEDULED_DEPARTURE + ELAPSED_TIME_IN_H)
-#christmasDay15$ARRIVAL_CALC
+head(christmasDay15$ARRIVAL_CALC)
 ```
 
-
+What ist the min and max of the arrival time:
 ```{r}
 max(christmasDay15$ARRIVAL_CALC, na.rm=T)
 min(christmasDay15$ARRIVAL_CALC, na.rm=T)
 
 ```
 
+Therefore, the hour count in the flight maps is from 1 to 28 hours.
+
 
 ##Dataset creation
 
-Animiert werden sollen alle Flüge vom JFK Airport in New York am Christmas Day (25.12.).
-Hierzu werden zunächst lediglich die Datensätze aus dem Datensatz exportiert, welche den Abflugsort JFK betreffen.
+We want to animate flights from and to JFK Airport, New York on Christmas Day (25.12).
+To reduce the data set to a more comfortable size we select only relevant feature in the data (a filter JFK is not necessary because in this data only JFK flight are included)
+
 ```{r}
 christmasDayJFK15 <- christmasDay15 %>% 
-    #filter(ORG_AIRPORT == "JFK") %>% 
+    #filter(ORG_AIRPORT == "JFK" , DEST_AIRPORT == "JFK") %>% 
     select(ORG_AIRPORT, ORG_LAT, ORG_LON, SCHEDULED_DEPARTURE, DEST_AIRPORT, DEST_LAT, DEST_LON,  ARRIVAL_CALC) 
-christmasDayJFK15
+head(christmasDayJFK15)
 ```
 
-Im nächsten Schritt muss dem Dataframe eine Index-Column zugewiesen werden.
+In the next step we have to create an index-column in the data frame.
 
 ```{r}
 christmasDayJFK15 <- tibble::rowid_to_column(christmasDayJFK15, "ID")
-christmasDayJFK15
+head(christmasDayJFK15)
 ```
+
+To present the map we decided to select with a sample of the data (next two code chunks):
 
 ```{r}
 jfk_sample <- sample_n(christmasDayJFK15, 25)
@@ -121,8 +127,7 @@ jfk_sample <- sample_n(christmasDayJFK15, 25)
 jfk_sample$SCHEDULED_DEPARTURE
 ```
 
-
-Nun müssen die ORG-Parameter von den DEST-Parametern getrennt werden, weshalb das Dataset gespalten wird. 
+At this point the data has to be splitted, to seperate the origin (ORG_AIRPORT) parameter from the ones from the destination (DEST_AIRPORT). Furter two EVENT features will be created.
 
 
 ```{r}
@@ -135,7 +140,7 @@ christmasDayJFK15_ORG <- jfk_sample %>%
         TIME = SCHEDULED_DEPARTURE,
     ) %>%
     select(ID, Event, AIRPORT, TIME,  LAT, LON) 
-christmasDayJFK15_ORG
+head(christmasDayJFK15_ORG)
 
 
 christmasDayJFK15_DEST <- jfk_sample %>% 
@@ -147,25 +152,30 @@ christmasDayJFK15_DEST <- jfk_sample %>%
         TIME = ARRIVAL_CALC,
     ) %>%
     select(ID, Event, AIRPORT, TIME, LAT, LON) 
-christmasDayJFK15_DEST
+head(christmasDayJFK15_DEST)
 ```
 
-Im nächsten Schritt werden die Dataframes wieder in anderer Form zusammengefügt. 
+After creation of the events "Departure Details" and Arrival Details" we put them together in a event data frame.
+
 ```{r}
 christmasDayJFK15_events <- rbind(christmasDayJFK15_ORG, christmasDayJFK15_DEST) %>%
   mutate(Event = factor(Event, ordered = TRUE, levels = c("Departure Details", "Arrival Details"))) %>%
   mutate(ID = factor(ID))
-christmasDayJFK15_events
+head(christmasDayJFK15_events)
 ```
 
-Zum Aschluss der DataPrep muss die Spalte Time bearbeitet werden. So wird für die Zeit lediglich die volle Stunde verwendet und die Minutenangaben fallen weg. Es werden jeweils die letzten 2 Character in der Spalte Time je String entfernt. Das kann dazu führen, dass wir unter anderem NA-Values produzieren, wenn beispielsweise die Zeitangabe anfangs bereits zweistellig war. In diesen Fällen werden die daraus enstandenen NA Values mit der Zahl O ersetzt. 
+To finish the data prep for the map we have to transform the feature time into a numeric character. to show the flight movements, only hours are taken into account (no minutes) to simplify the presentation.
+
 ```{r}
+#not necessary any more at this point:
 #christmasDayJFK15_events$TIME = substr(christmasDayJFK15_events$TIME,1,nchar(christmasDayJFK15_events$TIME)-2)
 
 christmasDayJFK15_events <- transform(christmasDayJFK15_events, TIME = as.numeric(TIME))
 
-christmasDayJFK15_events
+head(christmasDayJFK15_events)
 ```
+
+If there are any NA-Values in the data, they will be replaced by 0.
 
 ```{r}
 colSums(is.na(christmasDayJFK15_events))
@@ -175,13 +185,16 @@ colSums(is.na(christmasDayJFK15_events))
 christmasDayJFK15_events[is.na(christmasDayJFK15_events)] <- 0
 ```
 
+
+map of the USA in black (not used in the presentation):
+
 ```{r}
-usa2 <- map_data("usa") # we already did this, but we can do it again
-usablack <- ggplot() + geom_polygon(data = usa, aes(x=long, y = lat, group = group)) + 
-  coord_fixed(1.3)
+#usa2 <- map_data("usa") # we already did this, but we can do it again
+#usablack <- ggplot() + geom_polygon(data = usa, aes(x=long, y = lat, group = group)) + 
+ # coord_fixed(1.3)
 ```
 
-
+Loading map USA in black and white:
 
 ```{r}
 usa <- map_data("usa") # we already did this, but we can do it again
@@ -205,8 +218,7 @@ ggmap(us)
 # ```
 
 
-
-
+Display the vectors of the flight movement:
 
 ```{r}
 ggplot(data = unique(christmasDayJFK15_events), aes(x = LON, y = LAT, label = TIME)) +
@@ -215,6 +227,8 @@ ggplot(data = unique(christmasDayJFK15_events), aes(x = LON, y = LAT, label = TI
 anim_save("./images/pre_usa_flights1.gif")
 ```
 
+Visualize the flight movement.
+
 ```{r}
 gga <- ggplot(data = christmasDayJFK15_events, aes(x = LON, y = LAT)) +
      geom_point() +
@@ -222,6 +236,10 @@ gga <- ggplot(data = christmasDayJFK15_events, aes(x = LON, y = LAT)) +
 animate(gga)
 anim_save("./images/pre_usa_flights2.gif")
 ```
+
+
+
+
 
 ```{r }
 ggm <- ggplot(us) +
