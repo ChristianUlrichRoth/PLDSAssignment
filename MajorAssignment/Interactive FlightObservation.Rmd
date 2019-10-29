@@ -186,45 +186,30 @@ christmasDayJFK15_events[is.na(christmasDayJFK15_events)] <- 0
 ```
 
 
-map of the USA in black (not used in the presentation):
-
-```{r}
-#usa2 <- map_data("usa") # we already did this, but we can do it again
-#usablack <- ggplot() + geom_polygon(data = usa, aes(x=long, y = lat, group = group)) + 
- # coord_fixed(1.3)
-```
-
 Loading map USA in black and white:
 
 ```{r}
-usa <- map_data("usa") # we already did this, but we can do it again
+usa <- map_data("usa")
 states <- map_data("state")
 
 #Get the map we'll use as the background
 bbox <- c(left = -125, bottom = 25, right = -65, top = 50)
-us <- get_stamenmap(bbox = bbox, zoom = 5, maptype = "toner-lite")
+us <- get_stamenmap(bbox = bbox, zoom = 5) #maptype is resposible for color or black and white USA map
 ggmap(us)
 
 ```
-
-# ```{r}
-# #add delay for all flights
-# add_delay <- 0
-# for(i in flights_to_plot){
-#   christmasDayJFK15_events$order[christmasDayJFK15_events$Countries==i] <-
-#           christmasDayJFK15_events$order[christmasDayJFK15_events$Countries==i]+add_delay
-#   add_delay = add_delay+10
-# }
-# ```
 
 
 Display the vectors of the flight movement:
 
 ```{r}
-ggplot(data = unique(christmasDayJFK15_events), aes(x = LON, y = LAT, label = TIME)) +
+ggx <- ggplot(data = unique(christmasDayJFK15_events), aes(x = LON, y = LAT, label = TIME)) +
     geom_point() + 
     geom_text_repel()
-anim_save("./images/pre_usa_flights1.gif")
+ggx
+
+ggsave("./images/ggx.png")
+
 ```
 
 Visualize the flight movement.
@@ -238,15 +223,14 @@ anim_save("./images/pre_usa_flights2.gif")
 ```
 
 
-
-
+Visualize the flights in the interactive us map.
 
 ```{r }
-ggm <- ggplot(us) +
+ggm <- ggmap(us) +
   geom_point(data = christmasDayJFK15_events, 
              aes(x = LON, 
                  y = LAT, 
-                 col = ID, #zu zeitaufwendig
+                 #col = ID, #zu zeitaufwendig
                  group = ID,
                  shape = Event),
              size = 3, alpha = 0.8) +
@@ -255,13 +239,8 @@ ggm <- ggplot(us) +
   shadow_wake(wake_length = 0.1) +
   scale_size(range=c(3,20))
 animate(ggm, fps = 20, duration = 16, width = 1024, height = 951) 
-anim_save("./images/usa_flights3.gif")
-
+anim_save("./images/usa_flights_final.gif")
 ```
 
 
-```{r}
-#animate(ggm, fps = 20, width = 1024, height = 951, nframes = 640, end_pause = 40)
-anim_save("./images/usa_flights.gif")
-```
 

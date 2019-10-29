@@ -10,7 +10,6 @@ library(ggplot2)
 library(DT)
 
 # Define UI for application that draws a histogram
-#startData <- read_csv("https://media.githubusercontent.com/media/ChristianUlrichRoth/rassignment/master/MajorAssignment/data/cleandata/flights15_complete_sample.csv")
 startData <- read_csv("flights15_complete_sample.csv")
 
 GBChoices <- as.list(names(startData))

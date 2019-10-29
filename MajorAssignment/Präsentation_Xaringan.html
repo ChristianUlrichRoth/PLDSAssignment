@@ -114,18 +114,18 @@ library(tidyverse)
 ```
 
 ```
-## ── Attaching packages ────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──
+## ── Attaching packages ─────────────────────────────────────── tidyverse 1.2.1 ──
 ```
 
 ```
 ## ✔ ggplot2 3.2.1     ✔ purrr   0.3.2
 ## ✔ tibble  2.1.3     ✔ dplyr   0.8.3
-## ✔ tidyr   1.0.0     ✔ stringr 1.4.0
+## ✔ tidyr   0.8.3     ✔ stringr 1.4.0
 ## ✔ readr   1.3.1     ✔ forcats 0.4.0
 ```
 
 ```
-## ── Conflicts ───────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()
 ```
@@ -147,7 +147,7 @@ qq_christmas15 &lt;- christmas15[, c("ARRIVAL_DELAY", "AIR_TIME", "DISTANCE", "E
 plot_qq(qq_christmas15, sampled_rows = 1000L)
 ```
 
-![](Präsentation_Xaringan_files/figure-html/unnamed-chunk-4-1.png)&lt;!-- --&gt;
+![](Präsentation_Xaringan_files/figure-html/unnamed-chunk-4-1.png)&lt;!-- --&gt;
 ---
 
 ## Logarithmierte QQ-Plots
@@ -159,7 +159,7 @@ log_qq_christmas15 &lt;- update_columns(qq_christmas15, 2:4, function(x) log(x +
 plot_qq(log_qq_christmas15[, 2:4], sampled_rows = 1000L)
 ```
 
-![](Präsentation_Xaringan_files/figure-html/unnamed-chunk-5-1.png)&lt;!-- --&gt;
+![](Präsentation_Xaringan_files/figure-html/unnamed-chunk-5-1.png)&lt;!-- --&gt;
 
 ---
 # Korrelationen
@@ -235,13 +235,13 @@ background-image:url(images/usa_flights1.gif)
 background-position: 50% 50%
 background-size: contain
 
-# Flüge JFK
+# Animierte Flugkarte JFK
 ---
-# Flüge JFK
+# Entwicklungsstadien Flugkarte JFK
 
 .pull-left[
-Flugbewegungen in einer einfacheren Karte
-&lt;img src="images/pre_usa_flights1.png" height="400" /&gt;
+Flugvektoren
+&lt;img src="images/ggx.png" height="400" /&gt;
 ]
 .pull-right[
 Flugbewegungen ohne Karte
@@ -252,8 +252,8 @@ Flugbewegungen ohne Karte
 
 * In immer mehr Unternehmen werden Dashboards in einer Cloud-Umgebung gehostet
 * Wir haben uns mit Docker beschäftigt und versucht, eine die Shiny-App in der Google-Cloud zu deployen.
-* Ein erster Ansatz ist sehr viel versprechend. Wir konnten den Container aber nicht stabilisieren.
-* Daher mussten wir in diesem Assignment davon Abstand nehmen und können heute keine Live-Demo zeigen.
+* Ein erster Ansatz ist sehr viel versprechend und konnte erfolgreich implementiert werden. (Siehe Nachtrag) 
+
 
 .pull-left[
 
@@ -292,32 +292,96 @@ background-size: contain
 
 # Nachtrag Deployment mit Docker und in der Google-Cloud
 
-&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/1_gcloud_dashboard.png" height="400" /&gt;
+Ziel war es, unsere Shiny App in einem Docker Container in der Google Cloud zu deployen. 
+Hierfür haben wir zunächst einen Account in der Google Cloud angelegt und entsprechende APIs aktiviert. 
+In der Abbildung wird das Google Cloud Dashboard dargestellt. 
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/1_gcloud_dashboard.png" height="400" width="800"/&gt;
 
 
 
 ---
-# Nachtrag Deployment mit Docker und in der Google-Cloud
+# Build Trigger
 
-&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/2_gcloud_build_trigger.png" height="400" /&gt;
+Um aus der Shiny App ein Build erstellen zu können, wird ein sogenannter Google Cloud Build Trigger implementiert. Dafür ist es notwendig, unseren Google Cloud Space mit unserem Github Account zu verbinden. Im Anschluss werden verschiedene Trigger in den unterschiedlichsten Ausprägungen getestet. 
 
----
-
-
-
----
-
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/2_gcloud_build_trigger.png" /&gt;
 
 
 ---
 
+# Trigger Details
 
+In der nachfolgenden Abbildung ist ein Trigger dargestellt, welcher einen Build startet, sobald in Github Änderungen in den Branch "docker" gepusht werden. Dabei wird im Branch "docker" nach dem dafür notwendigen Buildfile (Dockerfile) gesucht, und die darin hinterlegte Installationsroutine gestartet. 
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/3_gcloud_trigger_details.png" /&gt;
 
 ---
 
+# Build History
 
+In dieser Abbildung sind unsere durchgelaufenen Builds zu sehen. Ein Build basiert auf einem Dockerfile. 
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/4_gcloud_build_history.png" /&gt;
 
 ---
+
+# Build Details
+
+Nachfolgend wird ein erfolgreiches Build-Image mit den dazugehörigen Informationen dargestellt.
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/5_gcloud_build_details.png" /&gt;
+
+---
+
+# Digest Details
+
+Das Build-Image ist direkt aufrufbar und enthält weitere Informationen. Aus diesem Image kann wiederum eine VM-Instanz erstellt werden. Dies ist sowohl manuell, als auch automatisiert möglich. 
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/6_gcloud_digest_details.png" /&gt;
+
+---
+
+# VM Instance Creation 
+
+Wie in der Abbildung zu erkennen ist, wird die VM-Instanz auf Basis des zuvor erstellten Container-Image erstellt. Darüber hinaus müssen noch noch netzwerkrelevante Einstellungen vorgenommen werden. 
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/7_gcloud_vm_instance_creation.png" /&gt;
+
+---
+
+# Firewall Rules
+
+Für den Aufruf des Shiny-Servers und des RStudio-Servers müssen die Ports 3838 und 8787 freigeschaltet werden. Nach der Implementierung unserer notwendigen Firewall-Regeln wird die dargestellte Shiny-Instanz aufrufbar sein. 
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/8_gcloud_firewall_rules.png" /&gt;
+
+---
+
+# VM Instances
+
+Die nachfolgende Abbildung zeigt eine erfolgreich implementierte VM Instanz auf Basis eines Dockerimages.
+
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/9_gcloud_vm_instance.png" /&gt;
+
+---
+
+# Shiny Server
+
+Über die entsprechende IP-Adresse und des Ports 3838 kann der Shiny Server aufgerufen werden. 
+Die unten stehende Abbildung zeigt, dass die Konfiguration erfolgreich war. 
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/10_gcloud_shiny_server.png" /&gt;
+
+---
+
+# Shiny Demo Example App
+
+It's alive! Wir sind nun in der Lage, unsere zukünftige Shiny App via Docker und Google Cloud zu exposen.
+
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/11_gcloud_shiny_demo_example_app1.png" /&gt;
+&lt;img src="images/shiny-server-with-gcloud-using-dockerbuild/11_gcloud_shiny_demo_example_app2.png" /&gt;
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
